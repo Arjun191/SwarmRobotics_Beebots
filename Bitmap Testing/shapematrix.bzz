@@ -1,0 +1,40 @@
+function shapematrix(){
+
+bitmap = {}
+
+bitmap[0] = {}
+bitmap[1] = {}
+bitmap[2] = {}
+bitmap[3] = {}
+bitmap[4] = {}
+bitmap[5] = {}
+bitmap[6] = {}
+
+i = 0
+
+while(i<7)
+{j = 0
+while(j<11)
+{ 
+ bitmap[i][j] = -1
+ j=j+1
+}
+i=i+1
+}
+
+bitmap[1][5] = 7
+bitmap[2][4] = 3
+bitmap[2][6] = 4
+bitmap[3][3] = 5
+bitmap[3][4] = 2
+bitmap[3][5] = 0
+bitmap[3][6] = 1
+bitmap[3][7] = 6
+bitmap[4][2] = 8
+bitmap[4][8] = 9
+bitmap[5][1] = 10
+bitmap[5][9] = 11
+ 
+return bitmap
+}
+

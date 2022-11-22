@@ -1,0 +1,103 @@
+
+include "shapematrix.bzz"
+
+function generate_kt() {
+ 
+bitmap = shapematrix()
+
+knowt = {}
+
+
+
+knowt["angle"] = {}
+knowt["dist"]  = {}
+knowt["rid"] = {}
+knowt["neighbours"] = {}
+knowt["size"] = {}
+knowt["flag"] = {}
+
+
+
+i = 0
+while(i<7){
+j = 0
+while(j<11){
+
+val = bitmap[i][j] 
+
+  
+
+if(val != -1)
+ { 
+
+knowt["neighbours"][val] = {} 
+val_array = knowt["neighbours"][val]
+
+knowt["angle"][val] = {}
+angle_array = knowt["angle"][val]
+
+knowt["dist"][val] = {}
+dist_array = knowt["dist"][val]
+
+if(bitmap[i-1][j-1]!=-1)
+		{
+     knowt["neighbours"][val][size(val_array)] = bitmap[i-1][j-1]
+		knowt["angle"][val][size(angle_array)] = 135
+		knowt["dist"][val][size(dist_array)] = 1.414
+		
+    }
+if(bitmap[i-1][j]!=-1)
+		{
+     knowt["neighbours"][val][size(val_array)] = bitmap[i-1][j]
+		knowt["angle"][val][size(angle_array)] = 90
+    knowt["dist"][val][size(dist_array)] = 1.0
+    }
+if(bitmap[i-1][j+1]!=-1)
+		{
+     knowt["neighbours"][val][size(val_array)] = bitmap[i-1][j+1]
+		knowt["angle"][val][size(angle_array)] = 45
+		knowt["dist"][val][size(dist_array)] = 1.414
+    }
+if(bitmap[i][j-1]!=-1)
+		{
+     knowt["neighbours"][val][size(val_array)] = bitmap[i][j-1]
+		knowt["angle"][val][size(angle_array)] = 180
+    knowt["dist"][val][size(dist_array)] = 1.0
+    }
+if(bitmap[i][j+1]!=-1)
+		{
+     knowt["neighbours"][val][size(val_array)] = bitmap[i][j+1]
+		knowt["angle"][val][size(angle_array)] = 0
+		knowt["dist"][val][size(dist_array)] = 1.0
+    }
+if(bitmap[i+1][j-1]!=-1)
+		{
+     knowt["neighbours"][val][size(val_array)] = bitmap[i+1][j-1]
+		knowt["angle"][val][size(angle_array)] = -135
+    knowt["dist"][val][size(dist_array)] = 1.414
+    }
+if(bitmap[i+1][j]!=-1)
+		{
+     knowt["neighbours"][val][size(val_array)] = bitmap[i+1][j]
+		knowt["angle"][val][size(angle_array)] = -90
+   knowt["dist"][val][size(dist_array)] = 1.0
+    }
+if(bitmap[i+1][j+1]!=-1)
+		{
+     knowt["neighbours"][val][size(val_array)] = bitmap[i+1][j+1]
+		knowt["angle"][val][size(angle_array)] = -45
+		knowt["dist"][val][size(dist_array)] = 1.414
+    }
+}
+j = j+1
+}
+i = i+1
+}
+ 
+
+}
+function init(){ 
+generate_kt()
+}
+
+
