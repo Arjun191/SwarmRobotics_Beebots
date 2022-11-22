@@ -1,0 +1,107 @@
+include "azisimpfunc.bzz"
+
+function seeds(){
+	coord = {.x =0.0, .y= 0.0}
+	if(state=="going")
+	{state = goto_coord(coord)}
+	if(state == "reached" )
+		{
+		if(math.abs(pose.orientation.yaw*180/math.pi) < 2.5 ) 
+			{
+			neighbors.foreach(function(rid, data){
+      b_message = {.x = data.azimuth, .y = "ready"} 
+			neighbors.broadcast(string.tostring(rid) , b_message)
+			}	)	
+			set_wheels(0.0, 0.0)
+			}
+		else  
+			{
+			set_wheels(3.0, -3.0)
+			}
+		}
+	}
+
+function other(){		
+		neighbors.nonkin().foreach(function(rid, data){
+			neighbors.listen(string.tostring(id), function(vid, message, rid){
+				log("listening")
+				stat = message.y
+				azimuth = message.x*180/math.pi
+				if(stat == "ready" and s=='not rotated')
+				{ 		if(x == 'not rotated')
+							{x= rotate_until(90, data.azimuth)
+							 radius = data.distance/100
+								debug.print(radius)}
+							if(x == 'rotated')	
+							{set_wheels(10*(radius - 0.05), 10*(radius + 0.05))}
+							log("L" , id)
+				}
+				})
+
+				ang = id*45
+				if(ang > 180)
+					ang = ang - 360
+				
+				if(azimuth > -ang - 3.0 and azimuth < -ang + 3.0)
+				{
+					if(s == 'not rotated')
+						s = rotate_until(0, data.azimuth)
+					else
+            {#dist_square = (pose.position.x - dest.x)^2 +(pose.position.y - dest.y)^2 
+							dist_square = (dist - data.distance/100)^2	
+						mov_state = "going"
+						log(mov_state, id)	
+						set_wheels(-100*dist_square,-100*dist_square)
+						if(dist_square <0.005)
+							{state = "reached"
+			 				 set_wheels(0.0, 0.0)
+							 log(state, "  ", id)
+							}
+						}
+				}
+				if(s == 'rotated' and (azimuth < -ang - 3.0 and azimuth > -ang + 3.0))
+					{s = 'not rotated' 
+					set_wheels(0.0, 0.0)}
+				#debug.print(s)
+				debug.print(state)
+   })
+}
+
+
+function init() {
+seed = swarm.create(0)
+seed.select(id==0)
+movers = seed.others(1)
+mov_state = "circle"
+state = "going"
+s = 'not rotated'
+stat = 'not ready'
+x = 'not rotated'
+#test coordinates
+#dest = {}
+if (id%2 ==0)
+		dist = 1.0
+else 
+		dist = 1.414
+
+}
+
+function step() {
+
+seed.exec(seeds)
+movers.exec(other)
+#show_colored_trajectory()
+}
+
+
+
+function reset() {
+   # put your code here
+}
+
+
+
+
+function destroy() {
+   # put your code here
+}

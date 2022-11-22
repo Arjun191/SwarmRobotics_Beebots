@@ -1,0 +1,41 @@
+
+function goto_coord(vec) 
+	{h = vec.x
+	k = vec.y
+	angle = math.atan(pose.position.y- k,pose.position.x- h)
+	angledeg = angle*180/math.pi
+	if((pose.orientation.yaw*180/math.pi>angledeg-2.5) and (pose.orientation.yaw*180/math.pi<angledeg+2.5))
+	{
+		dist = math.sqrt((pose.position.x- h)^2 +(pose.position.y - k)^2)
+		set_wheels(-100*dist^2,-100*dist^2)
+		if(dist <0.05)
+			{state = "reached"
+			 set_wheels(0.0, 0.0)
+				log(state)
+			}
+	}
+	else
+	{	set_wheels(3.0, -3.0)	
+		
+	}
+	return state
+}
+
+function rotate_until(angl, azimuth)
+{
+	if(math.abs(azimuth)*180/math.pi >angl-1.5 and math.abs(azimuth)*180/math.pi < angl+1.5)
+{
+log(azimuth*180/math.pi, "		", id)
+set_wheels(0.0, 0.0)
+sta = 'rotated'
+}
+
+else
+{
+set_wheels(3.0, -3.0)
+sta = 'not rotated'
+}
+return sta
+}
+
+
