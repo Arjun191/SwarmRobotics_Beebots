@@ -1,0 +1,122 @@
+include "tablegeneration.bzz"
+
+# Functions
+function sort(list) {
+	len = size(list)
+	k = 0
+	while(k < len){
+		j=0
+		while(j < len-1-k){
+			if (list[j]["dist"] > list[j+1]["dist"]){
+				temp = list[j]
+				list[j] = list[j+1]
+				list[j+1] = temp
+			}
+			j = j + 1
+		}
+		k = k + 1 
+	}
+	return list
+}
+
+# Main
+
+function init() {
+	neighborList = {}
+	label = -1
+	generate_kt()
+	if (id==0){
+		label = 0
+	}
+}
+
+
+function step() {
+	debug.print(label)
+
+	# Label Broadcast
+	neighbors.broadcast("label", label)
+
+	# Assignment
+	if (label == -1){
+		var pos = {}
+		pos.x = pose.position.x
+		pos.y = pose.position.y
+		neighbors.broadcast("available", pos)	
+		neighbors.listen("assignment",function(vid, assign, rid) {
+      if (assign.id == id){
+				label = assign.label
+				foreach(knowt["neighbours"][label], function(key, labelId) {
+     			if (labelId == assign.sendId){
+						knowt["neighbours"][label][key] = -1
+					}
+    		})
+				########
+				foreach(assign.sendList, function(key, labelId) {
+     			if (labelId == -1){
+						deleteId = knowt["neighbours"][assign.sendId][key]
+						foreach(knowt["neighbours"][label], function(key, labelId) {
+     					if (labelId == deleteId){
+								knowt["neighbours"][label][key] = -1
+							}
+    				})
+					}
+    		})
+				log(id," is ",label)
+			}
+   })
+	}
+	# Broadcast
+	else{
+		# Redundant Label Removal
+		neighbors.listen("label",function(vid, value, rid) {
+			foreach(knowt["neighbours"][label], function(key, labelId) {
+      	if (labelId == value){
+						knowt["neighbours"][label][key] = -1
+					}
+    	})
+		})
+		# New Labels
+		i = 0
+		neighbors.listen("available",function(vid, value, rid) {
+			neighborList[i] = {}
+			neighborList[i]["id"] = rid
+			neighborList[i]["dist"] = math.sqrt((value.x - pose.position.x)^2 + (value.y - pose.position.y)^2)
+			i = i + 1
+  	})
+		neighborList = sort(neighborList)
+		
+		#log(knowt["angle"][label][0])
+		index = 0
+		foreach(knowt["neighbours"][label], function(key, labelId) {
+			if (knowt["neighbours"][label][key] != -1){
+				if (key < size(neighborList)){
+					assign = {}
+					assign.id = neighborList[index]["id"]
+					assign.label = labelId
+					assign.sendId = label
+					assign.sendList = knowt["neighbours"][label]
+					neighbors.broadcast("assignment", assign)
+					knowt["neighbours"][label][key] = -1			
+					index = index + 1
+				}
+			}		
+    })
+
+	}
+   
+}
+
+
+
+function reset() {
+   # put your code here
+}
+
+
+
+# This function is executed only once, when the robot is removed
+# from the simulation
+function destroy() {
+   # put your code here
+}
