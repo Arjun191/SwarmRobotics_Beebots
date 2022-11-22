@@ -1,0 +1,158 @@
+include "Shapes/Bitmap-triangle.bzz"
+BARRIER_VSTIG = 1
+# Table Generation
+
+function generate_kt() {
+ 
+bitmap = shapematrix()
+
+knowt = {}
+
+
+
+knowt["angle"] = {}
+knowt["dist"]  = {}
+knowt["rid"] = {}
+knowt["neighbours"] = {}
+knowt["size"] = {}
+knowt["flag"] = {}
+
+
+
+i = 0
+while(i<7){
+j = 0
+while(j<7){
+
+val = bitmap[i][j] 
+
+  
+
+if(val != -1)
+ { 
+
+knowt["neighbours"][val] = {} 
+val_array = knowt["neighbours"][val]
+
+knowt["angle"][val] = {}
+angle_array = knowt["angle"][val]
+
+knowt["dist"][val] = {}
+dist_array = knowt["dist"][val]
+
+if(bitmap[i-1][j-1]!=-1)
+		{
+     knowt["neighbours"][val][size(val_array)] = bitmap[i-1][j-1]
+		knowt["angle"][val][size(angle_array)] = 135
+		knowt["dist"][val][size(dist_array)] = 1.414
+		
+    }
+if(bitmap[i-1][j]!=-1)
+		{
+     knowt["neighbours"][val][size(val_array)] = bitmap[i-1][j]
+		knowt["angle"][val][size(angle_array)] = 90
+    knowt["dist"][val][size(dist_array)] = 1.0
+    }
+if(bitmap[i-1][j+1]!=-1)
+		{
+     knowt["neighbours"][val][size(val_array)] = bitmap[i-1][j+1]
+		knowt["angle"][val][size(angle_array)] = 45
+		knowt["dist"][val][size(dist_array)] = 1.414
+    }
+if(bitmap[i][j-1]!=-1)
+		{
+     knowt["neighbours"][val][size(val_array)] = bitmap[i][j-1]
+		knowt["angle"][val][size(angle_array)] = 180
+    knowt["dist"][val][size(dist_array)] = 1.0
+    }
+if(bitmap[i][j+1]!=-1)
+		{
+     knowt["neighbours"][val][size(val_array)] = bitmap[i][j+1]
+		knowt["angle"][val][size(angle_array)] = 0
+		knowt["dist"][val][size(dist_array)] = 1.0
+    }
+if(bitmap[i+1][j-1]!=-1)
+		{
+     knowt["neighbours"][val][size(val_array)] = bitmap[i+1][j-1]
+		knowt["angle"][val][size(angle_array)] = -135
+    knowt["dist"][val][size(dist_array)] = 1.414
+    }
+if(bitmap[i+1][j]!=-1)
+		{
+     knowt["neighbours"][val][size(val_array)] = bitmap[i+1][j]
+		knowt["angle"][val][size(angle_array)] = -90
+   knowt["dist"][val][size(dist_array)] = 1.0
+    }
+if(bitmap[i+1][j+1]!=-1)
+		{
+     knowt["neighbours"][val][size(val_array)] = bitmap[i+1][j+1]
+		knowt["angle"][val][size(angle_array)] = -45
+		knowt["dist"][val][size(dist_array)] = 1.414
+    }
+}
+j = j+1
+}
+i = i+1
+}
+}
+
+# Custom Goto
+
+function gotopos(x, y){
+	botDist = math.sqrt((x-pose.position.x)^2 + (y-pose.position.y)^2)
+	if(botDist > 0.01 ){
+		goalPos = math.vec2.new(x, y)
+		botPos = math.vec2.new(pose.position.x, pose.position.y)
+		vec = math.vec2.sub(goalPos, botPos)
+		#vec = LCA(vec)
+		angle = math.vec2.angle(vec) - pose.orientation.yaw
+		length = math.vec2.length(vec)
+		botVel = math.vec2.newp(length, angle)	
+		botVel = math.vec2.scale(botVel, 40)
+		goto(botVel.x, botVel.y)
+	}
+else #if(state == "not reached") 
+{
+state = "reached"
+
+
+#direction = math. pi/2 - azimuth[0]
+
+#if(pose.orientation.yaw > direction - 0.08722 or pose.orientation.yaw < direction + 0.08722)
+if(pose.orientation.yaw < math.pi/2 - 0.05722 or pose.orientation.yaw > math.pi/2 + 0.05722)
+	set_wheels(3.0, -3.0)
+else
+	{set_wheels(0.0, 0.0)
+	barrier.put(id, "a")
+log(id, "	", barrier.get(id),"	", barrier.size())
+	}
+}
+}
+
+
+# Function to mark a robot ready
+function barrier_set() {
+# Create a vstig
+barrier = stigmergy.create(BARRIER_VSTIG)
+}
+
+# Function to wait for everybody to be ready
+function barrier_wait(threshold) {
+if(barrier.size() < threshold) 
+{log(barrier.get(id));
+log("waiting");
+}
+else
+{state = "healing_init"
+log("barrier full", id, state)
+}
+}
+
+function init(){
+	generate_kt()
+	
+}
+
+
+
+

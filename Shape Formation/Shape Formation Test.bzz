@@ -1,0 +1,172 @@
+include "Functions.bzz"
+var threshold = 8
+# Main
+
+function init() {
+flag = 0
+barrier_set()
+state  = "not reached"
+	pi = 3.14159
+	labelList = {}
+	labelX = pose.position.x	
+	labelY = pose.position.y
+	labelSize = 0
+	label = -1
+	generate_kt()
+	if(id==0){
+		label = 6
+threshold = 9
+	}
+  
+}
+
+
+function step() {
+	debug.print(label, "	", barrier.size())
+			if(label == 6){
+				#log(" x= ", pose.position.x, " y= ", pose.position.y)	
+			gotopos(pose.position.x, pose.position.y)
+			}
+
+	# Assignment
+	
+
+	if(label == -1){
+# Obtaining available nearby labels
+		index = 0
+		neighbors.listen("assignment",function(vid, labelId, rid) {
+			labelList[index] = labelId
+			index = index + 1
+   	})
+
+		# Redundant Label Removal
+
+		neighbors.listen("label",function(vid, exLabel, rid) {
+			foreach(labelList, function(key, labelId) {
+      	if(labelId == exLabel){
+						labelList[key] = -1
+				}
+    	})
+		})
+		
+		foreach(labelList, function(key, labelId) {
+      if(labelId != -1){
+					label = labelId
+			}
+    })
+		
+	}
+
+	# Broadcast
+
+	else{
+		
+		# Duplicate check
+		
+		neighbors.listen("label",function(vid, labelId, rid) {
+			if(label == labelId){
+				if(id > rid){
+					label = -1
+				}
+			}
+		})
+		
+		
+
+		# Own Label Broadcast
+
+		neighbors.broadcast("label", label)
+
+		# Adjacent Label Broadcast
+
+		foreach(knowt["neighbours"][label], function(key, labelId) {
+
+			# Label List
+			
+			neighbors.broadcast("assignment", labelId)
+
+			# Label Attributes
+
+			labelAttributes = {}
+			labelAttributes.id = labelId
+			labelAttributes.x = pose.position.x + knowt["dist"][label][key]*(math.cos(0.0175*knowt["angle"][label][key]))
+			labelAttributes.y = pose.position.y + knowt["dist"][label][key]*(math.sin(0.0175*knowt["angle"][label][key]))
+			
+			neighbors.broadcast("key", labelAttributes)
+    })
+		
+		# Movement
+
+		neighbors.listen("key", function(vid, labelPos, rid) {
+			if(label == labelPos.id){
+				if(rid == 0){
+		
+					labelX = labelX + 100*labelPos.x
+					labelY = labelY + 100*labelPos.y
+					labelSize = labelSize + 100	
+				}
+				else{
+					labelX = labelX + labelPos.x
+					labelY = labelY + labelPos.y
+					labelSize = labelSize + 1
+				}	
+			}	
+		})
+		if((labelSize != 0) and (id != 0)){
+			labelX = labelX / labelSize
+			labelY = labelY / labelSize
+			gotopos(labelX,labelY)
+			labelX = 0
+			labelY = 0
+			labelSize = 0
+		}
+		
+	
+		#labelX = labelX/labelSize
+		#labelY = labelY/labelSize
+		
+
+	}
+
+
+
+#Collision avoidance 
+if((id != 0) and (state == "not reached"))
+{	
+		closest_neighbors = neighbors.filter(function(rid, data)
+		{
+		return (data.distance < 30) })
+		repulsionForce = closest_neighbors.map(function(rid, data){
+				return math.vec2.newp(-10/(data.distance/100 - 0.15)^2 , data.azimuth)
+				})
+				netForceN = repulsionForce.reduce(function(rid, data, netForceN){
+				return math.vec2.add(data, netForceN)},math.vec2.new(0.0, 0.0))
+	if(closest_neighbors.count() > 0)
+			goto(netForceN.x, netForceN.y)
+}
+
+#Wait for shape formation to complete
+barrier_wait(threshold)
+
+if((state == "healing_init") and (flag==0))
+{
+heal_init()
+state = "ready"
+flag = 1
+}
+if(flag==1)
+{
+heal_step()
+}
+   
+}
+
+
+
+function reset() {
+   # put your code here
+}
+
+function destroy() {
+   # put your code here
+}

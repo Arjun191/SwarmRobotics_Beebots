@@ -1,0 +1,74 @@
+include "vec2.bzz"
+rotateSpeed = 3.0
+moveSpeed = 9.0 
+
+function init() {
+	set_wheels(moveSpeed, moveSpeed)
+}
+
+
+
+
+function step() {
+	closestDist = 0
+	closestKey = -1
+	foreach(proximity, function(key, value) {
+		if(proximity[key]["value"] > closestDist) {
+			closestKey = proximity[key]["angle"]
+			closestDist = proximity[key]["value"]
+		}
+	})
+	#log(closestKey)
+	if(closestKey != -1){
+		if(closestKey != 0){
+			sign = math.abs(closestKey)/closestKey
+		}
+		else{
+			sign = 1
+		}
+		
+		rotate = sign*rotateSpeed
+		log(closestKey)
+		if(math.abs(closestKey) < 1.5){
+			#set_wheels(3.0,-3.0)
+			set_wheels(sign*rotateSpeed, -sign*rotateSpeed)
+		}
+		else if(math.abs(closestKey) > 1.6){
+			set_wheels(-sign*rotateSpeed, sign*rotateSpeed)
+		}
+		else{
+			set_wheels(moveSpeed, moveSpeed)
+		}
+	}
+	else{
+		x = 8.0
+		y = 0
+		goalPos = math.vec2.new(x, y)
+		botPos = math.vec2.new(pose.position.x, pose.position.y)
+		vec = math.vec2.sub(goalPos, botPos)
+		angle = math.vec2.angle(vec) - pose.orientation.yaw
+		length = math.vec2.length(vec)
+		botVel = math.vec2.newp(length, angle)	
+		botVel = math.vec2.scale(botVel, 10)
+		goto(botVel.x, botVel.y)
+		#log(angle - pose.orientation.yaw)
+		#botRed = math.vec2.newp(1, pose.orientation.yaw)
+		#finalVec = math.vec2.sub(vec, botRed)
+		#goto(10*finalVec.x, 10*finalVec.y)
+		log(pose.position.x, " ", pose.position.y)  
+	}
+}
+
+
+
+
+function reset() {
+
+}
+
+
+
+
+function destroy() {
+
+}

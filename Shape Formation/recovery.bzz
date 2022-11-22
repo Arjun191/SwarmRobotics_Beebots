@@ -1,0 +1,368 @@
+include "/home/akshaya/Desktop/Spider'22/Bee-bots-3.0/Bee-bots-3.0/includes/debug.bzz"
+include "vec2.bzz"
+include "Size estimation.bzz"
+goal = {.x = 2.75, .y= 8.0}
+min = 10000
+minimum = 10000
+var robot = 0
+var break = 0
+i = 0
+ignore = {}
+azimuth = {}
+force_map = {}
+parent_map = {}
+length = 0
+
+function find_closest_parent()
+{
+
+#TODO: Consider deadlock case
+neighbors.listen("myParent", function(vid, child, rid){
+		parent_map[rid] = child
+		})
+
+neighbors.foreach(function(rid, data){
+log("Loop", id, rid)
+if((data.distance < min) and (math.abs(data.azimuth) < range) and  (parent_map[parent] != id)){
+	min = data.distance
+	parent = rid
+	log("Probable parent: ", id, "	", rid)
+	}
+else if(data.distance == min and parent_map[parent] != id )
+	{if (math.abs(data.azimuth) < math.pi/2)
+		{min = data.distance
+		parent = rid
+		}
+	}
+if(parent_map[parent] == id)
+{ log("DEADLOCK", id, rid)
+parent = leader.get("sourcebot")
+}
+})
+if(min == 10000 or range == 0.6*math.pi )
+{ range = 0.6*math.pi
+	neighbors.foreach(function(rid, data){
+	log("Loop2", id, rid)
+	if((data.distance < min) and (math.abs(data.azimuth) < range) and  (parent_map[parent] != id)){
+		min = data.distance
+		parent = rid
+		log("Probable parent2: ", id, "	", rid)
+	}
+	else if(data.distance == min and parent_map[parent] != id )
+		{if (math.abs(data.azimuth) < math.pi/2)
+			{min = data.distance
+			parent = rid
+			}
+		}
+	})	
+	
+}
+log(id, "		", parent)
+return parent
+}
+
+function find_corner_bots(){
+final_right_corner = 1 
+final_left_corner = 1
+final_top_corner = 1
+neighbors.foreach(function(rid, data){
+if(data.azimuth >= math.pi/4  and data.azimuth <= 0.7*math.pi )
+left_corner = 0 
+if(data.azimuth <= -0.06 or data.azimuth >3.0)
+right_corner = 0
+if(math.abs(data.azimuth) < math.pi/3)
+top_corner = 0 
+final_right_corner = final_right_corner*right_corner
+final_left_corner  = final_left_corner*left_corner 
+final_top_corner = final_top_corner*top_corner
+})
+if(final_left_corner == 1)
+{leftmost_bot = id
+corner_bots.put("Left", id)}
+if(final_right_corner == 1)
+{rightmost_bot = id
+corner_bots.put("Right", id)
+}
+if(final_top_corner == 1)
+{topmost_bot = id
+corner_bots.put("Top", id)
+}
+log("Left", corner_bots.get("Left"), "Right", corner_bots.get("Right"), "Top", corner_bots.get("Top"))
+}
+
+function calculate_obstacle_force(){
+ignore[id] = 0
+sensor_count = 0
+obstacle_repulsion = math.vec2.new(0.0,0.0)
+neighbors.foreach(function(rid, data){
+	neighbors.broadcast(string.tostring(rid), data.azimuth)
+})
+
+#Get bot's relative azimuth as seen by other bots
+neighbors.listen(string.tostring(id), function(vid, value, rid){
+if(value <= 0)
+	value = value +math.pi
+else 
+	value = value - math.pi
+log(id,"	", rid, "	 ", value)
+azimuth[rid] = value
+})
+prev_repulsion = math.vec2.new(0.0,0.0)
+false_positives = 0
+  foreach(ultrasound, function(key, value) {
+			#Gauge obstacle size by integrating sensor readings from all bots 
+			if(ultrasound[key]["value"]>0 ) {
+				sensor_count = sensor_count+1
+				log("Checking for object for ID", id, ":Angle", ultrasound[key]["angle"])			
+				robot = check_robot(ultrasound[key]["angle"])
+				if(robot==0)
+				{ prev_repulsion  = obstacle_repulsion	
+					if(ultrasound[key]["value"] < minimum)
+					{
+					closest.minimum = ultrasound[key]["value"] 
+					closest.botID = id
+					}
+					repel_vector = math.vec2.newp(i_length/(ultrasound[key]["value"]), ultrasound[key]["angle"])
+					repel_vector = math.vec2.rotate(repel_vector, math.pi)	
+					obstacle_repulsion  = math.vec2.add(obstacle_repulsion, repel_vector)
+					#obstacle_repulsion = math.vec2.scale( math.vec2.add(obstacle_repulsion, prev_repulsion), 0.7 )	
+					#debug.rays.add(0, 255, 0, repel_vector.x, repel_vector.y, 0.0)
+				} 
+				else
+				closest.minimum = 10000	
+			}
+		})
+	global_closest = vstig.get("closest bot")
+	if(closest.minimum<global_closest.minimum and i>2)
+			vstig.put("closest bot", closest)			
+	debug.rays.add(255, 0, 0, 0.1*obstacle_repulsion.x, 0.1*obstacle_repulsion.y, 0.0)
+	
+return obstacle_repulsion
+}
+
+function init()
+{heal_init()
+
+}
+
+function step()
+{heal_step()
+}
+
+function obstacle(){
+		closestDist = 0
+		closestKey = -1
+		foreach(proximity, function(key, value) {
+			if(proximity[key]["value"] > closestDist) {
+				closestKey = proximity[key]["angle"]
+				closestDist = proximity[key]["value"]
+			}
+		
+		})
+	#log(closestKey)
+		if(closestKey != -1){
+			if(closestKey != 0){
+				sign = math.abs(closestKey)/closestKey
+			}
+			else{
+				sign = 1
+			}
+		
+			rotate = sign*rotateSpeed
+			log(closestKey)
+			if(math.abs(closestKey) < 1.5){
+				set_wheels(sign*rotateSpeed, -sign*rotateSpeed)
+			}
+			else if(math.abs(closestKey) > 1.6){
+				set_wheels(-sign*rotateSpeed, sign*rotateSpeed)
+			}
+			else{
+				set_wheels(moveSpeed, moveSpeed)
+			}
+		}
+		else{
+			x = goal.x
+			y = goal.y
+		}
+	}
+
+
+function heal_init() {
+rotateSpeed = 3.0
+moveSpeed = 9.0 
+j= 2
+zerovec = math.vec2.new(0.0, 0.0)
+balanceForce = math.vec2.new(0.0, 0.0)
+corner_bots = stigmergy.create(4)
+source = -1
+parent_map[id] = -1
+azimuth[id] = 0
+vstig = stigmergy.create(3)
+closest = {.minimum = 10000, .botID = 0}
+vstig.put("closest bot", closest)
+
+leader = stigmergy.create(5)
+
+left_corner = 1
+right_corner = 1
+top_corner = 1
+i_length = 0
+parent = 0
+range = 0.3*math.pi
+while(i < 2){
+i = i +1
+}
+i = 0
+}
+
+
+
+function heal_step() {
+log("Healing step")
+goalPos = math.vec2.new(goal.x, goal.y)
+botPos = math.vec2.new(pose.position.x, pose.position.y)
+vec = math.vec2.sub(goalPos, botPos)
+length = math.vec2.length(vec)
+angle = math.vec2.angle(vec) - pose.orientation.yaw
+if(i<3)
+find_corner_bots()
+ if(i<5 and i >=3)
+
+{
+if(final_left_corner == 1)
+debug.print("Leftmost")
+if(final_right_corner == 1)
+debug.print("Rightmost")
+if(final_top_corner == 1)
+debug.print("Topmost")
+
+if(final_top_corner==1){
+if((id==corner_bots.get("Left") or id==corner_bots.get("Right")) and angle <0)
+			source= corner_bots.get("Left")
+else if((id==corner_bots.get("Left") or id==corner_bots.get("Right")) and angle >0 )
+			source =corner_bots.get("Right") 
+else if(final_left_corner == 0 and final_right_corner == 0)
+			source = id
+
+}
+
+if(id == source)
+			{log("SOURCE:", id)
+			leader.put("sourcebot", id)}
+}
+
+#Calculate initial force on the bot wrt source
+if(i>5 and i<9)	
+{
+		#Initially the bot closest to the source is the source bot
+		seed = vstig.get("closest bot").botID
+		neighbors.foreach(function(rid, data){#Generate force map of the neighborhood
+		force_map[rid] = math.vec2.newp(50*(data.distance/100)^2 , data.azimuth)})
+		parent = find_closest_parent()
+		neighbors.broadcast("myParent", parent)
+				
+		force = neighbors.filter(function(rid, data){
+			return ((rid==parent))
+			}).map(function(rid, data){
+			return math.vec2.newp(60*(data.distance/100)^2 , data.azimuth)
+		})
+	#Net force by neighbors
+	neighborForce = force.reduce(function(rid, data, neighborForce){
+				return math.vec2.add(data, neighborForce)
+	},math.vec2.new(0.0, 0.0))
+
+	#Counterforce for relative positioning
+	balanceForce = math.vec2.sub(zerovec, neighborForce)
+	netForce = math.vec2.add(balanceForce, neighborForce)
+}
+else if(i >=9){
+forceN = neighbors.filter(function(rid, data){
+return ((rid==parent)) 
+}).map(function(rid, data){
+#(id, "Azimuth wrt source:", data.azimuth*180/math.pi)
+if(data.azimuth*180/math.pi> 89)
+	return neighborForce #unstable otherwise
+else		
+	return math.vec2.newp(60*(data.distance/100)^2 , data.azimuth) #Force vector
+})
+
+neighborForceN = forceN.reduce(function(rid, dat, neighborForceN){
+				return math.vec2.add(dat, neighborForceN)
+},math.vec2.new(0.0, 0.0))
+
+i_length = length
+netForce = math.vec2.add(balanceForce, neighborForceN)
+obstacle_repulsion = calculate_obstacle_force()
+
+#if(id !=0)
+	#netForce = math.vec2.add(netForce, obstacle_repulsion)
+
+obstacle()
+ #Choose between avoiding the obstacle and reaching the goal
+if(closestDist==0){
+if(final_left_corner == 1)
+	goto(netForce.x + 0.401*obstacle_repulsion.x, netForce.y+0.401*obstacle_repulsion.y)
+else if(id==corner_bots.get("Right") and angle >0)
+	goto( netForce.x + 1.001*obstacle_repulsion.x, netForce.y+ 1.001*obstacle_repulsion.y)
+else
+	goto(netForce.x, netForce.y)
+
+}
+#debug.rays.add(255,0,255, netForce.x, netForce.y, 0.0)
+ 
+		goalPos = math.vec2.new(goal.x, goal.y)
+		botPos = math.vec2.new(pose.position.x, pose.position.y)
+		vec = math.vec2.sub(goalPos, botPos)
+		angle = math.vec2.angle(vec) - pose.orientation.yaw
+		length = math.vec2.length(vec)
+		botVel = math.vec2.newp(length, angle)	
+		botVel = math.vec2.scale(botVel, 6)
+		botRed = math.vec2.newp(1, pose.orientation.yaw)
+		finalVec = math.vec2.sub(vec, botRed)
+		
+if(j<=-2 and closestDist == 0 and id == source)
+{			#goto(botVel.x, botVel.y)
+			source_force = {.x =obstacle_repulsion.x+botVel.x , .y =obstacle_repulsion.y+botVel.y }
+			goto(source_force.x, source_force.y)
+			if(math.vec2.length(math.vec2.sub(source_force,zerovec)) < 0.01 or math.vec2.length(math.vec2.sub(obstacle_repulsion,prev_repulsion))>20)
+				set_wheels(3.0, 3.0)
+}
+
+		j = j-1
+}
+closest_neighbors = neighbors.filter(function(rid, data)
+		{
+		return (data.distance < 20) })
+		repulsionForce = closest_neighbors.map(function(rid, data){
+				return math.vec2.newp(-2.0/(data.distance/100 - 0.15)^2 , data.azimuth)
+				})
+				netForceN = repulsionForce.reduce(function(rid, data, netForceN){
+				return math.vec2.add(data, netForceN)},math.vec2.new(0.0, 0.0))
+	if(closest_neighbors.count() > 0)
+			goto(netForceN.x, netForceN.y)
+i=i+1	
+#if(id == vstig.get("closest bot").botID)
+#{
+#debug.print("Closest")
+show_colored_trajectory()
+#}
+}
+
+# This function is executed every time you press the 'reset'
+# button in the GUI. It is supposed to restore the state
+# of the controller to whatever it was right after init() was
+# called. The state of sensors and actuators is reset
+# automatically by ARGoS.
+function reset() {
+   # put your code here
+i = 0
+netForce = zerovec
+}
+
+
+
+# This function is executed only once, when the robot is removed
+# from the simulation
+function destroy() {
+   # put your code here
+}
