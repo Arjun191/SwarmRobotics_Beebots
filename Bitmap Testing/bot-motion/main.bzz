@@ -1,0 +1,214 @@
+include "azisimpfunc.bzz"
+include "/home/akshaya/beebots 3.0/Bee-bots-3.0/bitmap testing 1/table generation.bzz"
+include "shapematrix.bzz"
+coord = {.x =0.0, .y= 0.0}
+in = 0
+npLabel = {}
+
+function freeze()
+{	if(math.abs(pose.orientation.yaw*180/math.pi) < 2.5 ) 
+			{log("here", id)
+			closest_neighbors = neighbors.nonkin().filter(function(rid, data)
+					{return data.distance < 50}) 
+			i = 0
+			closest_neighbors.foreach(function(rid, data){
+				neighbors.listen("available",function(vid, value, rid) {
+				neighborList[i] = {}
+				neighborList[i]["id"] = value
+				i = i + 1
+  	  	})
+	#neighborList = sort(neighborList)
+	log("Neighbor size", size(neighborList))
+			index = 0
+			foreach(knowt["neighbours"][myLabel], function(key, labelId) { 
+				if (knowt["neighbours"][myLabel][key] != -1 and neighborList[index] != nil )
+						{
+							assign = {}
+							assign.id = neighborList[index]["id"]
+							assign.myKey  = key 
+							assign.label  = labelId
+							assign.sendId = myLabel
+							assign.sentId = id
+							#log(assign.label,"		", index,"		", key,"		", assign.id)
+						  b_message = {.x = data.azimuth, .y = "ready", .z = assign}
+							if(rid == assign.id)
+									neighbors.broadcast(string.tostring(rid), b_message)
+							log(assign.label,"		", index,"		", key,"		", assign.id)
+							#knowt["neighbours"][myLabel][key] = -1
+							index = index + 1
+						}
+					
+				})
+			})
+
+      gridParents = neighbors.kin().filter(function(rid, data){
+            return data.distance < 150 })
+			
+			gridParents.foreach(function(rid, data){
+        neighbors.broadcast(string.concat("r", string.tostring(id)), myLabel)
+				if(gridParents.count()>0 and f[rid] != 'deleted'){
+						neighbors.listen(string.concat("r", string.tostring(rid)), function(vid, messageLabel, rid){
+								npLabel[rid]  = messageLabel
+								if(f[rid] == 'not deleted')
+									f[rid]  = 'listened'
+						log("LISTEN", rid, "		", npLabel[rid])
+						})
+						foreach(knowt["neighbours"][myLabel], function(iterator, l){
+						log(iterator, "		", myLabel, "	", npLabel[rid], "	", rid)
+           	if(npLabel[rid] != nil and knowt["neighbours"][myLabel][iterator] == npLabel[rid] and f[rid] == 'listened')
+            	{log( myLabel, "FOREACH", knowt["neighbours"][myLabel][iterator])
+								knowt["neighbours"][myLabel][iterator] = -1
+								f[rid]  = "deleted"
+							}
+						log("hereGr", l )
+					  })
+						if(f[rid] == 'deleted') 
+							neighbors.ignore(string.concat("r", string.tostring(rid)))
+				}
+			})
+		set_wheels(0.0, 0.0)
+		}
+		else  
+			{
+			set_wheels(3.0, -3.0)
+			log(c_state)
+			}
+	
+}
+
+function other(){
+		closest_parent = neighbors.nonkin().filter(function(rid, data)
+		{return (data.distance < 50) })
+
+		closest_parent.foreach(function(rid, data)
+		{#var pos = {}
+			#pos.x = pose.position.x
+			#pos.y = pose.position.y
+			log(c_state)
+			if(c_state == "free")
+		  		c_state = "asking"
+			neighbors.broadcast("available", id)
+			neighbors.listen(string.tostring(id), function(vid, message, rid){
+					log("listening")
+          assignment = message.z
+					myLabel = assignment.label
+					key = assignment.myKey
+					stat = message.y
+					parentLabel = assignment.sendId 
+					parentId  = assignment.sentId
+					azimuth = message.x*180/math.pi
+					knowt["rid"][myLabel] = id
+        	debug.print(myLabel)
+			})
+
+			if((stat == 'ready') and (s =='not rotated'))
+				{
+					c_state = "joining"	
+							if(x == 'not rotated')
+								{x= rotate_until(90, data.azimuth)
+							 	radius = data.distance/100
+								  
+								}
+							if(x == 'rotated')
+								{set_wheels(10*(radius - 0.05), 10*(radius + 0.05))
+									
+								}
+					log("L" , id)
+					}
+
+			})
+			
+		
+				
+				if(c_state == "joining")
+				{	c_p = neighbors.nonkin().filter(function(rid, data){
+							return rid == parentId})
+					c_p.foreach(function(rid, data){
+					log(rid, "		", id)
+					ang =  knowt["angle"][parentLabel][key]
+				
+					if(ang > 180)
+						ang = ang - 360
+					log(ang, "here")
+					dist = knowt["dist"][parentLabel][key]
+					
+					if(azimuth > ang -3.0 and azimuth < ang + 3.0)
+						{
+						if(s == 'not rotated')
+							{s = rotate_until(0, data.azimuth)}
+						 	
+							
+					   else
+            	{dist_square = (dist - data.distance/100)^2
+							set_wheels(-100*dist_square,-100*dist_square)
+						
+							if(dist_square <0.005)
+									{if(math.abs(pose.orientation.yaw*180/math.pi) < 2.5 ) 
+											{c_state = "freeze"
+			 				 				set_wheels(0.0, 0.0)
+							 				}
+									 else
+										set_wheels(3.0, -3.0)
+									log(c_state)
+									}
+							}
+						}
+					debug.print(azimuth)
+					})
+				}
+			
+
+
+}
+
+
+function init() 
+{
+parents = swarm.create(0)
+parents.select(id==0)
+children = parents.others(1)
+c_state = "free"
+s = 'not rotated'
+stat = 'not ready'
+x = 'not rotated'
+
+i = 0
+neighborList = {}
+myLabel = -1
+generate_kt()
+if(id==0)
+		myLabel = 0
+index = 0
+f = {}
+it = 0
+while(it<9)
+{ f[it] = 'not deleted'
+		it = it+1
+}
+}
+
+function step() 
+{
+if(id==0)
+{if(c_state=="free")
+	    {c_state = goto_coord(coord)}
+}
+parents.select(c_state == "freeze")
+children = parents.others(1)
+parents.exec(freeze)
+children.exec(other)
+
+}
+
+
+
+function reset() {
+   # put your code here
+}
+
+
+
+
+function destroy() {
+   # put your code here
+}
